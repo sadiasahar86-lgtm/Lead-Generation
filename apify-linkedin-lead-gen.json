@@ -1,0 +1,455 @@
+{
+  "name": "LinkedIn Lead Generation (Apify → Google Sheets)",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "LinkedIn Lead Generation",
+        "formDescription": "Enter LinkedIn search details to scrape leads.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Job Title / Keyword",
+              "placeholder": "e.g. Marketing Manager",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Location",
+              "placeholder": "e.g. Lahore, Pakistan",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Industry (optional)",
+              "placeholder": "e.g. Software",
+              "requiredField": false
+            },
+            {
+              "fieldLabel": "Max Results",
+              "fieldType": "number",
+              "placeholder": "50",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "form-trigger",
+      "name": "Lead Search Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [-640, 300],
+      "webhookId": "b1c2d3e4-0001-4000-8000-000000000011"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/REPLACE_WITH_APIFY_ACTOR_ID/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  title: $json['Job Title / Keyword'],\n  location: $json['Location'],\n  industry: $json['Industry (optional)'] || '',\n  maxItems: Number($json['Max Results']),\n  cookie: 'REPLACE_WITH_YOUR_LI_AT_COOKIE'\n}) }}",
+        "options": {}
+      },
+      "id": "start-apify-run",
+      "name": "Start Apify Run",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-420, 300],
+      "notes": "Replace actor ID with the LinkedIn scraper you pick on Apify Store (e.g. harvestapi/linkedin-profile-search, apimaestro/linkedin-profile-search). Field names in jsonBody must match that actor's input schema exactly - check its Input tab on Apify. Header Auth credential: Name = Authorization, Value = Bearer YOUR_APIFY_TOKEN"
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "wait-node",
+      "name": "Wait 30s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [-200, 300],
+      "webhookId": "b1c2d3e4-0002-4000-8000-000000000012"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/actor-runs/{{ $('Start Apify Run').item.json.data.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "check-run-status",
+      "name": "Check Run Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [20, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "run-finished",
+              "leftValue": "={{ $json.data.status }}",
+              "rightValue": "SUCCEEDED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "is-run-done",
+      "name": "Run Finished?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "run-failed",
+              "leftValue": "={{ $json.data.status }}",
+              "rightValue": "FAILED, ABORTED, TIMED-OUT",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "is-run-failed",
+      "name": "Run Failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [240, 480]
+    },
+    {
+      "parameters": {
+        "errorMessage": "=Apify LinkedIn scraper run failed with status: {{ $json.data.status }}"
+      },
+      "id": "stop-on-failure",
+      "name": "Stop Workflow (Run Failed)",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [460, 560]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{ $('Start Apify Run').item.json.data.defaultDatasetId }}/items?clean=true&format=json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-dataset-items",
+      "name": "Get Scraped Profiles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 180]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1",
+              "name": "Full Name",
+              "value": "={{ $json.fullName || $json.name || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f2",
+              "name": "Job Title",
+              "value": "={{ $json.headline || $json.jobTitle || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f3",
+              "name": "Company",
+              "value": "={{ $json.companyName || $json.currentCompany || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f4",
+              "name": "Location",
+              "value": "={{ $json.location || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f5",
+              "name": "LinkedIn Profile URL",
+              "value": "={{ $json.profileUrl || $json.url || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f6",
+              "name": "Email",
+              "value": "={{ $json.email || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f7",
+              "name": "Connections",
+              "value": "={{ $json.connectionsCount || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "f8",
+              "name": "Search Query",
+              "value": "={{ $('Lead Search Form').first().json['Job Title / Keyword'] }} - {{ $('Lead Search Form').first().json['Location'] }}",
+              "type": "string"
+            },
+            {
+              "id": "f9",
+              "name": "Scraped At",
+              "value": "={{ $now.format('yyyy-MM-dd HH:mm') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "map-lead-fields",
+      "name": "Map Lead Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [700, 180],
+      "notes": "Field names on the right side of $json.xxx depend on the actor you use - check a sample run's dataset output in Apify Console and adjust these mappings to match."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-name",
+              "leftValue": "={{ $json['Full Name'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "has-profile-url",
+              "leftValue": "={{ $json['LinkedIn Profile URL'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "filter-quality-leads",
+      "name": "Keep Valid Leads",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [920, 180]
+    },
+    {
+      "parameters": {
+        "operation": "removeDuplicateInputItems",
+        "compare": "selectedFields",
+        "fieldsToCompare": "LinkedIn Profile URL",
+        "options": {}
+      },
+      "id": "remove-duplicates",
+      "name": "Remove Duplicates",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [1140, 180]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "save-to-sheets",
+      "name": "Save Leads to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1360, 180],
+      "notes": "Sheet header row must be: Full Name | Job Title | Company | Location | LinkedIn Profile URL | Email | Connections | Search Query | Scraped At"
+    }
+  ],
+  "connections": {
+    "Lead Search Form": {
+      "main": [
+        [
+          {
+            "node": "Start Apify Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Apify Run": {
+      "main": [
+        [
+          {
+            "node": "Wait 30s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 30s": {
+      "main": [
+        [
+          {
+            "node": "Check Run Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Run Status": {
+      "main": [
+        [
+          {
+            "node": "Run Finished?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Finished?": {
+      "main": [
+        [
+          {
+            "node": "Get Scraped Profiles",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Run Failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Failed?": {
+      "main": [
+        [
+          {
+            "node": "Stop Workflow (Run Failed)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 30s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Scraped Profiles": {
+      "main": [
+        [
+          {
+            "node": "Map Lead Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Lead Fields": {
+      "main": [
+        [
+          {
+            "node": "Keep Valid Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Valid Leads": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Save Leads to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
