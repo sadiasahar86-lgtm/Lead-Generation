@@ -1,0 +1,229 @@
+{
+  "name": "Instagram Lead Generation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "dee3d1c2-8532-4920-9abb-bea4a42d5da8",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "Run actor and get dataset",
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "shu8hvrXbJbY3Eb9W",
+          "cachedResultName": "Instagram Scraper (apify/instagram-scraper)"
+        },
+        "customBody": "{\"directUrls\":[\"https://www.instagram.com/cristiano/\"],\"resultsType\":\"details\",\"resultsLimit\":20,\"searchType\":\"user\"}"
+      },
+      "id": "964ccb40-ce72-462e-8f52-883c201a0d25",
+      "name": "Scrape Instagram Leads",
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "apifyApi": {
+          "id": "91mdEhyL6ATa8szs",
+          "name": "Apify account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "15hos3sinRX_7mnQH8gA5MCyKWTfwQDNlGFZd8XnwE4g",
+          "mode": "list",
+          "cachedResultName": "insta lead generation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15hos3sinRX_7mnQH8gA5MCyKWTfwQDNlGFZd8XnwE4g/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "username": "={{ $json.username }}",
+            "fullName": "={{ $json.fullName }}",
+            "biography": "={{ $json.biography }}",
+            "followersCount": "={{ $json.followersCount }}",
+            "followsCount": "={{ $json.followsCount }}",
+            "postsCount": "={{ $json.postsCount }}",
+            "isBusinessAccount": "={{ $json.isBusinessAccount }}",
+            "isVerified": "={{ $json.isVerified }}",
+            "businessCategoryName": "={{ $json.businessCategoryName }}",
+            "externalUrl": "={{ $json.externalUrl }}",
+            "profileUrl": "={{ $json.url }}"
+          },
+          "schema": [
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fullName",
+              "displayName": "fullName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "biography",
+              "displayName": "biography",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "followersCount",
+              "displayName": "followersCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "followsCount",
+              "displayName": "followsCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "postsCount",
+              "displayName": "postsCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "isBusinessAccount",
+              "displayName": "isBusinessAccount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "isVerified",
+              "displayName": "isVerified",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "businessCategoryName",
+              "displayName": "businessCategoryName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "externalUrl",
+              "displayName": "externalUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "profileUrl",
+              "displayName": "profileUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "351d2f3d-be43-4d57-85be-43b3878554ad",
+      "name": "Save Leads to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "C104SejPkf56vmXz",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Scrape Instagram Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Instagram Leads": {
+      "main": [
+        [
+          {
+            "node": "Save Leads to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0843d678-527f-44db-be0d-aa9bd86d9bb5",
+  "meta": {
+    "instanceId": "6f8820b9c525bff9e18ae66b2761aa24b74d14649f5163e2dc0a6569b33a7647"
+  },
+  "nodeGroups": [],
+  "id": "hDkzVvcjcAwFnmXg",
+  "tags": []
+}
